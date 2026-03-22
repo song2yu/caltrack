@@ -34,10 +34,10 @@ export default function WeightScreen() {
   const [height, setHeight] = useState(170);
   const [bmi, setBmi] = useState(null);
 
-  const loadData = useCallback(() => {
-    const logs = getWeightLogs(30);
-    const latest = getLatestWeight();
-    const h = parseFloat(getSetting('height') || '170');
+  const loadData = useCallback(async () => {
+    const logs = await getWeightLogs(30);
+    const latest = await getLatestWeight();
+    const h = parseFloat(await getSetting('height') || '170');
     setWeightLogs(logs);
     setLatestWeight(latest);
     setHeight(h);
@@ -52,14 +52,14 @@ export default function WeightScreen() {
     }, [loadData])
   );
 
-  const handleSaveWeight = () => {
+  const handleSaveWeight = async () => {
     const w = parseFloat(weightInput);
     if (!w || w <= 0 || w > 500 || isNaN(w)) {
       Alert.alert('提示', '请输入有效的体重 (1-500 kg)');
       return;
     }
     const today = getTodayString();
-    addWeightLog(today, w);
+    await addWeightLog(today, w);
     setWeightInput('');
     loadData();
   };

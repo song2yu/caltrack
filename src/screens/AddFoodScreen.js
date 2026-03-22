@@ -48,7 +48,7 @@ export default function AddFoodScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  const handleConfirmAdd = () => {
+  const handleConfirmAdd = async () => {
     if (!selectedFood) return;
     const qty = useCustom ? parseFloat(customQty) : quantity;
     if (!qty || qty <= 0 || isNaN(qty)) {
@@ -56,7 +56,7 @@ export default function AddFoodScreen({ route, navigation }) {
       return;
     }
     const calories = calculateCalories(selectedFood, qty);
-    addFoodLog(
+    await addFoodLog(
       routeDate,
       selectedMeal,
       selectedFood.id,

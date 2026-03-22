@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, ActivityIndicator } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import AddFoodScreen from './src/screens/AddFoodScreen';
@@ -15,9 +16,19 @@ import { initDatabase } from './src/database/db';
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  const [ready, setReady] = React.useState(false);
+
   React.useEffect(() => {
-    initDatabase();
+    initDatabase().then(() => setReady(true));
   }, []);
+
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider>

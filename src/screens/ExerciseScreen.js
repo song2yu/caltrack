@@ -37,11 +37,11 @@ export default function ExerciseScreen({ route }) {
   const [exerciseLogs, setExerciseLogs] = useState([]);
   const [userWeight, setUserWeight] = useState(60);
 
-  const loadData = useCallback(() => {
-    const logs = getExerciseLogByDate(date);
+  const loadData = useCallback(async () => {
+    const logs = await getExerciseLogByDate(date);
     setExerciseLogs(logs);
     // Get user weight from settings if available, else default 60
-    const hw = parseFloat(getSetting('weight_kg') || '60');
+    const hw = parseFloat(await getSetting('weight_kg') || '60');
     if (!isNaN(hw) && hw > 0) setUserWeight(hw);
   }, [date]);
 
@@ -59,7 +59,7 @@ export default function ExerciseScreen({ route }) {
     ? calculateExerciseCalories(selectedExercise.kcalPerMin, parseFloat(duration) || 0, userWeight)
     : 0;
 
-  const handleAddExercise = () => {
+  const handleAddExercise = async () => {
     if (!selectedExercise) {
       Alert.alert('提示', '请选择运动类型');
       return;
@@ -70,7 +70,7 @@ export default function ExerciseScreen({ route }) {
       return;
     }
     const burned = calculateExerciseCalories(selectedExercise.kcalPerMin, dur, userWeight);
-    addExerciseLog(date, selectedExercise.name, dur, burned);
+    await addExerciseLog(date, selectedExercise.name, dur, burned);
     loadData();
     setSelectedExercise(null);
     setDuration('30');
@@ -83,8 +83,8 @@ export default function ExerciseScreen({ route }) {
       {
         text: '删除',
         style: 'destructive',
-        onPress: () => {
-          deleteExerciseLog(id);
+        onPress: async () => {
+          await deleteExerciseLog(id);
           loadData();
         },
       },

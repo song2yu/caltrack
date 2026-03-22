@@ -25,8 +25,8 @@ export default function SettingsScreen() {
   const [age, setAge] = useState('25');
   const [saved, setSaved] = useState(false);
 
-  const loadSettings = useCallback(() => {
-    const s = getAllSettings();
+  const loadSettings = useCallback(async () => {
+    const s = await getAllSettings();
     if (s.calorie_goal) setCalorieGoal(s.calorie_goal);
     if (s.height) setHeight(s.height);
     if (s.gender) setGender(s.gender);
@@ -39,7 +39,7 @@ export default function SettingsScreen() {
     }, [loadSettings])
   );
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const goal = parseInt(calorieGoal, 10);
     if (!goal || goal < 500 || goal > 10000) {
       Alert.alert('提示', '每日热量目标应在 500 - 10000 千卡之间');
@@ -56,10 +56,10 @@ export default function SettingsScreen() {
       return;
     }
 
-    setSetting('calorie_goal', String(goal));
-    setSetting('height', String(h));
-    setSetting('gender', gender);
-    setSetting('age', String(a));
+    await setSetting('calorie_goal', String(goal));
+    await setSetting('height', String(h));
+    await setSetting('gender', gender);
+    await setSetting('age', String(a));
 
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -74,8 +74,8 @@ export default function SettingsScreen() {
         {
           text: '确定清除',
           style: 'destructive',
-          onPress: () => {
-            clearAllData();
+          onPress: async () => {
+            await clearAllData();
             Alert.alert('完成', '所有数据已清除');
           },
         },

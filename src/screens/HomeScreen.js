@@ -37,13 +37,13 @@ export default function HomeScreen({ navigation }) {
   const [exerciseLogs, setExerciseLogs] = useState([]);
   const [calorieGoal, setCalorieGoal] = useState(2000);
 
-  const loadData = useCallback(() => {
-    const logs = getFoodLogByDate(currentDate);
-    const exercises = getExerciseLogByDate(currentDate);
-    const goal = parseInt(getSetting('calorie_goal') || '2000', 10);
+  const loadData = useCallback(async () => {
+    const logs = await getFoodLogByDate(currentDate);
+    const exercises = await getExerciseLogByDate(currentDate);
+    const goal = await getSetting('calorie_goal');
     setFoodLogs(logs);
     setExerciseLogs(exercises);
-    setCalorieGoal(goal);
+    setCalorieGoal(parseInt(goal || '2000', 10));
   }, [currentDate]);
 
   useFocusEffect(
@@ -68,13 +68,13 @@ export default function HomeScreen({ navigation }) {
 
   const getLogsByMeal = (meal) => foodLogs.filter(f => f.meal === meal);
 
-  const handleDeleteFood = (id) => {
-    deleteFoodLog(id);
+  const handleDeleteFood = async (id) => {
+    await deleteFoodLog(id);
     loadData();
   };
 
-  const handleDeleteExercise = (id) => {
-    deleteExerciseLog(id);
+  const handleDeleteExercise = async (id) => {
+    await deleteExerciseLog(id);
     loadData();
   };
 

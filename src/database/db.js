@@ -1,170 +1,118 @@
-import * as SQLite from 'expo-sqlite';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-let db = null;
+// ─── Keys ───────────────────────────────────────────────
+const KEYS = {
+  FOOD_LOG: 'caltrack_food_log',
+  EXERCISE_LOG: 'caltrack_exercise_log',
+  WEIGHT_LOG: 'caltrack_weight_log',
+  SETTINGS: 'caltrack_settings',
+};
 
-export const getDatabase = () => {
-  if (!db) {
-    db = SQLite.openDatabaseSync('caltrack.db');
+// ─── Helpers ─────────────────────────────────────────────
+const readJSON = async (key, fallback) => {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
   }
-  return db;
 };
 
-export const initDatabase = () => {
-  const database = getDatabase();
-
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS food_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      meal TEXT NOT NULL,
-      food_id TEXT,
-      food_name TEXT NOT NULL,
-      quantity REAL NOT NULL,
-      calories REAL NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS exercise_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      exercise_name TEXT NOT NULL,
-      duration_min REAL NOT NULL,
-      calories_burned REAL NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS weight_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      date TEXT NOT NULL,
-      weight REAL NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  database.execSync(`
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
-
-  // Insert default settings if not present
-  database.execSync(`
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('calorie_goal', '2000');
-  `);
-  database.execSync(`
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('height', '170');
-  `);
-  database.execSync(`
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('gender', '男');
-  `);
-  database.execSync(`
-    INSERT OR IGNORE INTO settings (key, value) VALUES ('age', '25');
-  `);
+const writeJSON = async (key, value) => {
+  await AsyncStorage.setItem(key, JSON.stringify(value));
 };
 
-// ---- Food Log ----
-export const addFoodLog = (date, meal, food_id, food_name, quantity, calories) => {
-  const database = getDatabase();
-  database.runSync(
-    'INSERT INTO food_log (date, meal, food_id, food_name, quantity, calories) VALUES (?, ?, ?, ?, ?, ?)',
-    [date, meal, food_id, food_name, quantity, calories]
-  );
+let _nextId = Date.now();
+const nextId = () => ++_nextId;
+
+// ─── Init (no-op for AsyncStorage, kept for API compat) ──
+export const initDatabase = async () => {
+  const settings = await readJSON(KEYS.SETTINGS, null);
+  if (!settings) {
+    await writeJSON(KEYS.SETTINGS, {
+      calorie_goal: '2000',
+      height: '170',
+      gender: '男',
+      age: '25',
+    });
+  }
 };
 
-export const getFoodLogByDate = (date) => {
-  const database = getDatabase();
-  return database.getAllSync(
-    'SELECT * FROM food_log WHERE date = ? ORDER BY created_at ASC',
-    [date]
-  );
+// ─── Food Log ────────────────────────────────────────────
+export const addFoodLog = async (date, meal, food_id, food_name, quantity, calories) => {
+  const all = await readJSON(KEYS.FOOD_LOG, []);
+  all.push({ id: nextId(), date, meal, food_id, food_name, quantity, calories, created_at: new Date().toISOString() });
+  await writeJSON(KEYS.FOOD_LOG, all);
 };
 
-export const deleteFoodLog = (id) => {
-  const database = getDatabase();
-  database.runSync('DELETE FROM food_log WHERE id = ?', [id]);
+export const getFoodLogByDate = async (date) => {
+  const all = await readJSON(KEYS.FOOD_LOG, []);
+  return all.filter(r => r.date === date).sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
-// ---- Exercise Log ----
-export const addExerciseLog = (date, exercise_name, duration_min, calories_burned) => {
-  const database = getDatabase();
-  database.runSync(
-    'INSERT INTO exercise_log (date, exercise_name, duration_min, calories_burned) VALUES (?, ?, ?, ?)',
-    [date, exercise_name, duration_min, calories_burned]
-  );
+export const deleteFoodLog = async (id) => {
+  const all = await readJSON(KEYS.FOOD_LOG, []);
+  await writeJSON(KEYS.FOOD_LOG, all.filter(r => r.id !== id));
 };
 
-export const getExerciseLogByDate = (date) => {
-  const database = getDatabase();
-  return database.getAllSync(
-    'SELECT * FROM exercise_log WHERE date = ? ORDER BY created_at ASC',
-    [date]
-  );
+// ─── Exercise Log ────────────────────────────────────────
+export const addExerciseLog = async (date, exercise_name, duration_min, calories_burned) => {
+  const all = await readJSON(KEYS.EXERCISE_LOG, []);
+  all.push({ id: nextId(), date, exercise_name, duration_min, calories_burned, created_at: new Date().toISOString() });
+  await writeJSON(KEYS.EXERCISE_LOG, all);
 };
 
-export const deleteExerciseLog = (id) => {
-  const database = getDatabase();
-  database.runSync('DELETE FROM exercise_log WHERE id = ?', [id]);
+export const getExerciseLogByDate = async (date) => {
+  const all = await readJSON(KEYS.EXERCISE_LOG, []);
+  return all.filter(r => r.date === date).sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
-// ---- Weight Log ----
-export const addWeightLog = (date, weight) => {
-  const database = getDatabase();
-  // Upsert by date
-  database.runSync(
-    'INSERT OR REPLACE INTO weight_log (date, weight) VALUES (?, ?)',
-    [date, weight]
-  );
+export const deleteExerciseLog = async (id) => {
+  const all = await readJSON(KEYS.EXERCISE_LOG, []);
+  await writeJSON(KEYS.EXERCISE_LOG, all.filter(r => r.id !== id));
 };
 
-export const getWeightLogs = (limit = 30) => {
-  const database = getDatabase();
-  return database.getAllSync(
-    'SELECT * FROM weight_log ORDER BY date DESC LIMIT ?',
-    [limit]
-  );
+// ─── Weight Log ──────────────────────────────────────────
+export const addWeightLog = async (date, weight) => {
+  const all = await readJSON(KEYS.WEIGHT_LOG, []);
+  const filtered = all.filter(r => r.date !== date); // upsert by date
+  filtered.push({ id: nextId(), date, weight, created_at: new Date().toISOString() });
+  await writeJSON(KEYS.WEIGHT_LOG, filtered);
 };
 
-export const getLatestWeight = () => {
-  const database = getDatabase();
-  return database.getFirstSync(
-    'SELECT * FROM weight_log ORDER BY date DESC LIMIT 1'
-  );
+export const getWeightLogs = async (limit = 30) => {
+  const all = await readJSON(KEYS.WEIGHT_LOG, []);
+  return all.sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
 };
 
-// ---- Settings ----
-export const getSetting = (key) => {
-  const database = getDatabase();
-  const row = database.getFirstSync('SELECT value FROM settings WHERE key = ?', [key]);
-  return row ? row.value : null;
+export const getLatestWeight = async () => {
+  const all = await readJSON(KEYS.WEIGHT_LOG, []);
+  if (!all.length) return null;
+  return all.sort((a, b) => b.date.localeCompare(a.date))[0];
 };
 
-export const setSetting = (key, value) => {
-  const database = getDatabase();
-  database.runSync(
-    'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-    [key, String(value)]
-  );
+// ─── Settings ────────────────────────────────────────────
+export const getSetting = async (key) => {
+  const settings = await readJSON(KEYS.SETTINGS, {});
+  return settings[key] ?? null;
 };
 
-export const getAllSettings = () => {
-  const database = getDatabase();
-  const rows = database.getAllSync('SELECT key, value FROM settings');
-  const result = {};
-  rows.forEach(row => {
-    result[row.key] = row.value;
+export const setSetting = async (key, value) => {
+  const settings = await readJSON(KEYS.SETTINGS, {});
+  settings[key] = String(value);
+  await writeJSON(KEYS.SETTINGS, settings);
+};
+
+export const getAllSettings = async () => {
+  return await readJSON(KEYS.SETTINGS, {
+    calorie_goal: '2000',
+    height: '170',
+    gender: '男',
+    age: '25',
   });
-  return result;
 };
 
-// ---- Clear All Data ----
-export const clearAllData = () => {
-  const database = getDatabase();
-  database.execSync('DELETE FROM food_log;');
-  database.execSync('DELETE FROM exercise_log;');
-  database.execSync('DELETE FROM weight_log;');
+// ─── Clear All ───────────────────────────────────────────
+export const clearAllData = async () => {
+  await AsyncStorage.multiRemove([KEYS.FOOD_LOG, KEYS.EXERCISE_LOG, KEYS.WEIGHT_LOG]);
 };
