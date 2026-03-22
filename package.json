@@ -19,8 +19,6 @@
     "@react-navigation/bottom-tabs": "^6.6.1",
     "react-native-safe-area-context": "5.1.0",
     "react-native-screens": "~4.5.0",
-    "react-native-svg": "15.8.0",
-    "buffer": "^6.0.3",
     "@expo/vector-icons": "^14.0.4"
   },
   "devDependencies": {
